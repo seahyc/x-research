@@ -89,10 +89,18 @@ ToolSearch("select:mcp__claude-in-chrome__get_page_text")
 ToolSearch("select:mcp__claude-in-chrome__read_network_requests")
 
 mcp__claude-in-chrome__tabs_context_mcp({ createIfEmpty: true })
+mcp__claude-in-chrome__tabs_create_mcp({})  // ALWAYS create a fresh tab
 ```
 
 **Rule**: always use the MCP tab group. Never navigate a user's existing tab
-without confirmation. Create a new tab if in doubt.
+without confirmation.
+
+**ALWAYS create a brand-new tab via `tabs_create_mcp` at the start of a
+session.** Do NOT reuse a tab returned by `tabs_context_mcp` — another agent
+or background process may already be driving it. Reusing a shared tab causes
+silent navigation conflicts: your `navigate` calls succeed but the tab snaps
+back to the other agent's URL. If you see the tab title flicker between two
+unrelated pages, that's the symptom — abandon the tab and create a new one.
 
 ---
 
@@ -109,6 +117,23 @@ without confirmation. Create a new tab if in doubt.
 | Date-bounded  | append `+since%3AYYYY-MM-DD+until%3AYYYY-MM-DD` to search URL   |
 | From user     | append `+from%3A{username}` to search URL                        |
 | Profile       | `https://x.com/{username}`                                        |
+| Author replies | `https://x.com/{username}/with_replies` — see Phase 2e          |
+
+### 2e. Finding a tweet you don't have the URL for
+
+When you only know the tweet's content (e.g. "the original Karpathy LLM
+Knowledge Bases tweet") but not its ID, use the search endpoint with the
+`from:` operator:
+
+```
+https://x.com/search?q={first 6-10 distinctive words}+from:{handle}&f=live
+```
+
+Then extract the tweet ID by scraping `a[href*="/status/"]` from the result
+page. Filter out `/analytics`, `/photo`, and `/quotes` suffixes — what's left
+is candidate tweet URLs. The first match from the right author is usually it.
+
+This is also the fallback when a quoted tweet's click-through fails (Phase 4b).
 
 ### 2b. Anti-autoplay — MANDATORY after every single navigation
 
@@ -206,14 +231,20 @@ each reply individually:
 // For each reply article, extract engagement
 const replyMetrics = Array.from(document.querySelectorAll('article')).map(a => {
   const text = a.innerText.replace(/\n+/g, ' ').trim();
-  // Engagement numbers are at the end of the article text
-  // Pattern: "{replies} {reposts} {likes} {bookmarks} {views}"
-  const numbers = text.match(/(\d+(?:\.\d+)?[KM]?)\s*$/g);
+  // Engagement numbers are the LAST 4-5 numeric tokens in the article text:
+  // Pattern: "... {replies} {reposts} {likes} {bookmarks} {views}"
+  // The old `\s*$` regex only caught the final token (views) — broken.
+  const allNumbers = text.match(/\b(\d+(?:\.\d+)?[KM]?)\b/g) || [];
+  const tail = allNumbers.slice(-5);  // last 5: replies, reposts, likes, bookmarks, views
   const handle = a.querySelector('[data-testid="User-Name"] a')?.href?.split('/').pop();
-  return { handle, text: text.substring(0, 400), numbers };
+  return { handle, text: text.substring(0, 400), engagement: tail };
 });
 JSON.stringify(replyMetrics);
 ```
+
+The number of trailing engagement tokens varies (4 for replies without
+bookmarks visible, 5 for tweets with full counts). Take the last 5 and
+let the consumer interpret positionally.
 
 For replies, prioritise by:
 1. **Engagement ratio relative to the original tweet** — a reply with 50 likes
@@ -280,10 +311,41 @@ For each high-signal tweet, execute all applicable sub-phases below.
 Every "Quote" block is a breadcrumb. The author thought this was important
 enough to amplify — that makes it high-signal by definition.
 
-1. Extract the quoted tweet URL from the article's link list
-2. Navigate to it
-3. Full thread read as per 4a
-4. Log what the original author found remarkable about it
+**Important gotcha**: a quoted tweet's URL is **not** rendered as a normal
+`<a href>` in the parent article's DOM. X renders the quote preview as a
+nested `div[role="link"]` with the navigation handler attached via JS, not
+as an anchor element. So `document.querySelectorAll('a[href*="/status/"]')`
+on the parent will return only the parent's own URLs, never the quote's.
+
+**Three methods, in order of preference:**
+
+**Method A — click through (primary).** Use `find` to locate the quoted
+tweet element semantically, then `computer` to click it. The tab navigates
+to the quoted tweet's own page; read the new URL from `tabs_context_mcp`.
+
+```
+find({ tabId, query: "quoted tweet from {handle} on {date}" })
+// → returns ref_NN
+computer({ tabId, action: "click", ref: "ref_NN" })
+// → wait 1s, then tabs_context_mcp to read the new URL
+```
+
+**Method B — wait + re-scrape (when click target is ambiguous).** On a
+freshly-loaded tweet page, status links sometimes appear in the DOM after
+hydration completes. Wait 2-3 seconds after navigation, then re-run the
+scrape. Sometimes the `<a>` for the quoted tweet's timestamp link does
+materialise — but treat this as best-effort, not reliable.
+
+**Method C — search by content (fallback).** If the quote preview text is
+visible in the parent article and you can't get a click target (e.g. the
+quoted tweet was deleted but the preview still renders), use Phase 2e:
+search for the first 6-10 distinctive words of the quoted text with
+`from:{quoted_author}`. This recovers the URL even when the click is broken.
+
+After getting the URL by any method:
+1. Navigate to it
+2. Full thread read as per 4a
+3. Log what the original author found remarkable about it
 
 ### 4c. Top replies
 
@@ -326,6 +388,44 @@ after navigating — Claude can read the image directly.
 - Number of visible players/characters
 - Overall polish level
 - Any text labels (product name, instructions, menus, captions)
+
+### 4g. Tracking one author's replies in a busy thread
+
+When you need every reply a specific author made in a discussion (e.g.
+"what did Chamath say in response to all the suggestions on his thread?"),
+scrolling the parent tweet's reply timeline is often the wrong tool:
+
+- X sorts replies by **"Relevant"** (engagement-weighted), not chronologically
+- The author's replies are nested as children of *different* top-level replies,
+  each behind a **"Show replies"** expand action
+- On viral threads (>100 replies), lazy-load fatigue kicks in around 10 scroll
+  cycles and you start missing chunks
+- Scrolling to find 4 replies in an 800-reply thread is painful and incomplete
+
+**Faster path — scrape the author's `/with_replies` page directly:**
+
+```
+1. Navigate to https://x.com/{handle}/with_replies
+2. Anti-autoplay JS
+3. Scrape all status links and filter to this author:
+```
+
+```javascript
+Array.from(document.querySelectorAll('a[href*="/status/"]'))
+  .map(a => a.href)
+  .filter((v, i, arr) => arr.indexOf(v) === i)
+  .filter(h => h.includes(`/${handle}/status/`))
+  .filter(h => !h.includes('/analytics') && !h.includes('/photo'))
+```
+
+This returns a flat, chronologically-ordered list of the author's recent
+post + reply tweet IDs. Each ID can be navigated to directly — when you load
+a reply tweet's URL, X shows the parent it was replying to, so you get full
+context per reply for free.
+
+**When to use scrolling instead**: small threads (<50 replies), or when you
+need *every* reply on the thread (not just one author's). Scrolling and
+`/with_replies` are complementary tools.
 
 ### 4f. Video — full download + frame analysis (exhaustive depth only)
 
@@ -796,6 +896,11 @@ All of these were observed and confirmed during testing.
 | Quoted tweet content truncated | Inline preview only shows part | Navigate to the quoted tweet's own URL |
 | Search `from:user` not working | Operator not supported in `f=live` for some accounts | Use `https://x.com/search?q=...&f=top` or Advanced Search |
 | Video has no audio after ffmpeg `-c copy` | Used video-only playlist (`/pl/avc1/1920x1080/...`) | Use the master playlist (`/pl/{hash}.m3u8?variant_version=...`) which includes audio |
+| Tab title flickers between two URLs / your `navigate` calls "succeed" but the tab keeps snapping back | Another agent or process is sharing the same MCP tab | Abandon the tab. Call `tabs_create_mcp` to make a fresh one and never reuse tabs from `tabs_context_mcp` |
+| `get_page_text` only returns the parent tweet, no replies visible | The tool scopes to the focused `<article>` element. Replies are sibling articles below | Use `javascript_tool` with `document.querySelector('main')?.innerText` instead, or iterate `document.querySelectorAll('article')` to read all of them |
+| Long tweet shows "Show more" and is truncated in feed/profile/search view | X collapses long tweets in list views | Don't try to click "Show more" in place — navigate to the tweet's own URL (`https://x.com/{user}/status/{id}`), it auto-expands there |
+| Quoted tweet URL not found via `a[href*="/status/"]` on the parent tweet page | The quote preview is rendered as a `div[role="link"]` with JS-attached navigation, NOT an `<a>` element | Use `find` + `computer.click` to navigate (Phase 4b Method A), then read the new URL from `tabs_context_mcp` |
+| Tracking one author's 4 replies in an 800-reply thread by scrolling is slow and unreliable | X sorts replies by relevance not chronology, and replies are nested under different parents behind "Show replies" expanders | Scrape `https://x.com/{handle}/with_replies` instead — see Phase 4g |
 
 ---
 
