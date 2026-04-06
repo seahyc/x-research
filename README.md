@@ -57,9 +57,11 @@ The full pipeline has been validated end-to-end:
 - Article scrape with structured JS: ✅ avoided the `[BLOCKED]` error
 - `read_network_requests` for video URL capture: ✅ captured 34+ video.twimg.com URLs without clicking play (X auto-prefetches)
 - ffmpeg M3U8 download: ✅ assembled a 23s 1080p video in <1s, a 2:24 video in <4s
-- Frame extraction at 1 fps: ✅ 23 frames produced
-- `Read` tool on extracted frames: ✅ Claude reads each frame as an image and extracts NPC names, dialogue, HUD state, mechanics
+- Frame extraction at 1 fps: ✅ 23 frames from a 23s clip
+- ffmpeg scene detection on long video: ✅ 2:24 video collapsed from 145 frames → 7 keyframes at threshold 0.3 (20x reduction, no signal loss)
+- `Read` tool on extracted frames: ✅ Claude reads each frame as an image and extracts NPC names, dialogue, HUD state, mechanics, UI text
 - Local Whisper audio transcription: ✅ 2:24 talking-head video transcribed in 26s with `tiny` model on CPU; output included product name, architecture details, plans, even hesitations
+- Multimodal cross-correction: ✅ frames corrected Whisper's "Pharsa Pedia" → actual UI showed "Farzapedia"
 
 ## Techniques codified
 

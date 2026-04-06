@@ -323,18 +323,50 @@ Notes:
 **Tested result**: assembles a 23-second 1080p video from ~12 segments in
 under 1 second. Output ~2.7MB, 1404 frames at 60fps.
 
-**Step 4 — Extract frames at 1 fps.**
+**Step 4 — Extract frames.**
 
+The right approach depends on video length:
+
+**Short clips (< 30s) — fixed-rate sampling:**
 ```bash
 mkdir -p /tmp/xresearch_frames
 ffmpeg -y -i /tmp/xresearch_video.mp4 \
   -vf "fps=1" \
   /tmp/xresearch_frames/frame_%04d.jpg
-ls /tmp/xresearch_frames/
 ```
 
-For short clips (< 15s) where you want more granularity, use `fps=2`.
-For long clips where you want a sparse overview, use `fps=0.5`.
+For very short clips (< 15s) bump to `fps=2`.
+
+**Long clips (> 30s) — scene detection (recommended):**
+
+ffmpeg has built-in scene change detection. This collapses 100+ frames
+into the handful where something visually changed — typically a 20-30x
+reduction with no loss of signal.
+
+```bash
+mkdir -p /tmp/xresearch_frames
+ffmpeg -y -i /tmp/xresearch_video.mp4 \
+  -vf "select='gt(scene,0.3)',showinfo" \
+  -vsync vfr \
+  /tmp/xresearch_frames/frame_%04d.jpg
+```
+
+Threshold tuning:
+- `gt(scene,0.2)` — sensitive, captures small changes (e.g. UI updates, dialog appearing)
+- `gt(scene,0.3)` — **default**, catches scene cuts and major content changes
+- `gt(scene,0.4)` — strict, only major cuts
+- `gt(scene,0.5)` — very strict, hard cuts only
+
+**Tested result**: a 2:24 talking-head + screen recording video produced
+**145 frames at fps=1** vs **7 frames at scene threshold 0.3** vs
+**5 frames at threshold 0.4**. Each scene-detected frame was a distinct
+new context (different app, different dialog, different topic on screen).
+
+If scene detection returns too few frames (< 3), drop the threshold to 0.2.
+If it returns too many (> 30), bump to 0.5.
+
+**Always use scene detection for videos > 30s.** Reading 145 frames will
+blow up Claude's context — reading 7 won't.
 
 **Step 5 — Read frames as images.**
 
@@ -419,6 +451,15 @@ What audio reveals that frames don't:
 - **Plans / asks** — "I might make this a product next week, DM me"
 - **Hesitations and corrections** — signal of authenticity vs scripted demo
 - **Names and references** — products, people, tweets, citations the speaker mentions
+
+**Multimodal cross-correction**: read frames AND transcript together. They
+correct each other's failure modes:
+- Whisper mishears proper nouns (e.g. "Pharsa Pedia" instead of "Farzapedia")
+  → frames show the actual product name in the UI
+- Frames show UI but not the speaker's intent
+  → audio explains what they're trying to do
+- Frames show a tool / library being used
+  → audio explains why they chose it and what they tried before
 
 **Step 7 — Clean up between videos.**
 
