@@ -5,8 +5,8 @@ gathering from X (Twitter).
 
 Born from a research session where naive scroll-and-skim kept getting hijacked
 by autoplaying videos and lazy-loaded content. Every technique in this skill
-was discovered the hard way. It works for any topic: game jams, product launches,
-research communities, tech trends, founder spaces, competitive intel.
+was discovered the hard way. It works for any topic: product launches,
+research communities, tech trends, founder spaces, market intel, discourse mapping.
 
 ## What it does
 
@@ -22,16 +22,56 @@ Runs a structured multi-pass research loop:
 
 ## Installation
 
-### Claude Code (plugin marketplace)
+### One-shot installer (Recommended)
+
+Clones the repo, checks/installs all dependencies, and symlinks the skill into `~/.claude/skills/`:
+
+```bash
+git clone https://github.com/seahyc/x-research ~/Code/x-research
+cd ~/Code/x-research
+./install.sh
+```
+
+The installer:
+1. Detects your platform (macOS / Linux)
+2. Verifies `ffmpeg`, `curl`, and `whisper` are installed (offers to install missing ones)
+3. Checks for a Chromium-based browser
+4. Checks if `claude-in-chrome` MCP server is configured (warns if not)
+5. Symlinks `skills/x-research/` into `~/.claude/skills/x-research`
+
+### Manual installation
+
+If you'd rather do it yourself:
+
+```bash
+# 1. Clone the repo wherever you keep your skills
+git clone https://github.com/seahyc/x-research ~/Code/x-research
+
+# 2. Symlink the skill into Claude Code's skills directory
+ln -s ~/Code/x-research/skills/x-research ~/.claude/skills/x-research
+
+# 3. Install dependencies
+brew install ffmpeg                     # macOS
+# OR
+sudo apt-get install ffmpeg             # Linux
+
+# Optional: install Whisper for audio transcription
+pip install openai-whisper              # any platform
+# OR
+brew install openai-whisper             # macOS
+# OR
+brew install whisper-cpp                # faster C++ port
+```
+
+### Plugin marketplace (when published)
+
 ```bash
 /plugin install x-research
 ```
 
-### Manual (symlink method)
-```bash
-git clone https://github.com/YOUR_USERNAME/x-research ~/.claude/plugins/x-research
-ln -s ~/.claude/plugins/x-research/skills/x-research ~/.claude/skills/x-research
-```
+### Verifying the install
+
+In Claude Code, ask: *"research what people are saying about [topic] on X"* — the skill should auto-invoke. Or explicitly: *"use the x-research skill"*.
 
 ## Usage
 
@@ -39,7 +79,7 @@ ln -s ~/.claude/plugins/x-research/skills/x-research ~/.claude/skills/x-research
 /x-research
 ```
 
-Or trigger naturally — if you ask Claude to "research what's being built for #vibejam"
+Or trigger naturally — if you ask Claude to "research this topic on X"
 or "deep-dive this thread", the skill auto-invokes.
 
 ## Requirements
@@ -59,7 +99,7 @@ The full pipeline has been validated end-to-end:
 - ffmpeg M3U8 download: ✅ assembled a 23s 1080p video in <1s, a 2:24 video in <4s
 - Frame extraction at 1 fps: ✅ 23 frames from a 23s clip
 - ffmpeg scene detection on long video: ✅ 2:24 video collapsed from 145 frames → 7 keyframes at threshold 0.3 (20x reduction, no signal loss)
-- `Read` tool on extracted frames: ✅ Claude reads each frame as an image and extracts NPC names, dialogue, HUD state, mechanics, UI text
+- `Read` tool on extracted frames: ✅ Claude reads each frame as an image and extracts on-screen text, UI state, character names, dialogue, and visible context
 - Local Whisper audio transcription: ✅ 2:24 talking-head video transcribed in 26s with `tiny` model on CPU; output included product name, architecture details, plans, even hesitations
 - Multimodal cross-correction: ✅ frames corrected Whisper's "Pharsa Pedia" → actual UI showed "Farzapedia"
 
@@ -79,12 +119,18 @@ The full pipeline has been validated end-to-end:
 
 ## Works for any research domain
 
-- Game jam / hackathon competitive intel
+**Primary use case: founders doing user research** — deep-dive into what an
+X community actually thinks about a topic, problem, product category, or pain
+point. Surface unmet needs, complaints, workarounds, and feature requests
+straight from the people you're trying to serve.
+
+Other use cases:
 - Product launch community reaction
 - Academic / research field pulse
-- Founder communities and trends
+- Founder community trends and sentiment
 - Tech announcement analysis
-- Political or cultural discourse mapping
+- Discourse mapping on a contentious topic
+- Competitive intelligence on any topic
 
 ## License
 
