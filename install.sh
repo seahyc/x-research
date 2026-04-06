@@ -23,6 +23,11 @@ echo
 echo "x-research installer"
 echo "===================="
 echo
+echo "Tip: if you just want the skill files (no dependency checks), the lightest"
+echo "     install is the cross-agent Skills CLI:"
+echo "         npx skills add seahyc/x-research"
+echo "     This script does that AND verifies all runtime dependencies."
+echo
 
 # Detect platform
 PLATFORM="$(uname -s)"

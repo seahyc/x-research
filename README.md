@@ -22,51 +22,49 @@ Runs a structured multi-pass research loop:
 
 ## Installation
 
-### One-shot installer (Recommended)
+### Via [skills.sh](https://skills.sh) (Recommended — works on Claude Code, Cursor, Codex, Cline, Copilot, +41 more agents)
 
-Clones the repo, checks/installs all dependencies, and symlinks the skill into `~/.claude/skills/`:
+```bash
+npx skills add seahyc/x-research
+```
+
+The Skills CLI auto-discovers `skills/x-research/SKILL.md` in this repo and installs it to whichever agent directory you're using (Claude Code's `~/.claude/skills/`, Cursor's, etc).
+
+Optional flags:
+```bash
+npx skills add seahyc/x-research --global   # install to user dir, not project
+npx skills add seahyc/x-research --copy     # copy files instead of symlinking
+npx skills add seahyc/x-research --list     # preview what gets installed first
+```
+
+**Then install the runtime dependencies** (the Skills CLI handles the skill files, but ffmpeg + whisper are separate system tools):
+
+```bash
+# macOS
+brew install ffmpeg openai-whisper
+
+# Linux
+sudo apt-get install ffmpeg
+pip install openai-whisper
+```
+
+Or run our installer to handle dependency checks + a Chromium browser check:
 
 ```bash
 git clone https://github.com/seahyc/x-research ~/Code/x-research
-cd ~/Code/x-research
-./install.sh
+cd ~/Code/x-research && ./install.sh
 ```
 
-The installer:
-1. Detects your platform (macOS / Linux)
-2. Verifies `ffmpeg`, `curl`, and `whisper` are installed (offers to install missing ones)
-3. Checks for a Chromium-based browser
-4. Checks if `claude-in-chrome` MCP server is configured (warns if not)
-5. Symlinks `skills/x-research/` into `~/.claude/skills/x-research`
-
-### Manual installation
-
-If you'd rather do it yourself:
+### Manual installation (no Skills CLI)
 
 ```bash
-# 1. Clone the repo wherever you keep your skills
+# 1. Clone the repo
 git clone https://github.com/seahyc/x-research ~/Code/x-research
 
 # 2. Symlink the skill into Claude Code's skills directory
 ln -s ~/Code/x-research/skills/x-research ~/.claude/skills/x-research
 
-# 3. Install dependencies
-brew install ffmpeg                     # macOS
-# OR
-sudo apt-get install ffmpeg             # Linux
-
-# Optional: install Whisper for audio transcription
-pip install openai-whisper              # any platform
-# OR
-brew install openai-whisper             # macOS
-# OR
-brew install whisper-cpp                # faster C++ port
-```
-
-### Plugin marketplace (when published)
-
-```bash
-/plugin install x-research
+# 3. Install runtime deps (see above)
 ```
 
 ### Verifying the install
