@@ -356,10 +356,76 @@ For each frame, extract:
 - **Visual quality** — geometry, lighting, shadows, effects
 - **Text overlays** — character names, instructions, scores
 
-**Step 6 — Clean up between videos.**
+**Step 6 — Audio transcription (when video has speech).**
+
+Frame analysis shows what's *visible*. For videos with voiceover, narration,
+or dialogue, you also need the audio. Use local Whisper — fast, free, no API.
+
+When to use: any tweet where someone is talking on camera, doing a screen
+recording with narration, explaining a product, or interviewing someone.
+When to skip: silent gameplay demos, music-only videos, ambient footage.
+
+Quick check first — does the video even have an audio stream?
 
 ```bash
-rm -rf /tmp/xresearch_frames /tmp/xresearch_video.mp4
+ffprobe -v error -show_entries stream=codec_type,codec_name -of default=noprint_wrappers=1 /tmp/xresearch_av.mp4
+```
+
+If you see `codec_type=audio`, proceed. Note: the video file must come from
+the **master M3U8 playlist** (`/pl/{hash}.m3u8?variant_version=...`), not the
+video-only quality variant — the latter has no audio stream at all.
+
+**Extract audio** as 16kHz mono MP3 (Whisper's preferred input):
+
+```bash
+ffmpeg -y -i /tmp/xresearch_av.mp4 \
+  -vn -acodec libmp3lame -ar 16000 -ac 1 \
+  /tmp/xresearch_audio.mp3
+```
+
+**Transcribe** with local Whisper:
+
+```bash
+whisper /tmp/xresearch_audio.mp3 \
+  --model tiny \
+  --output_dir /tmp/xresearch_transcript \
+  --output_format txt \
+  --language en
+```
+
+Model selection:
+- `tiny` (~75MB) — fastest, good enough for clear speech, ~10x realtime on CPU
+- `base` (~150MB) — better punctuation and proper-noun accuracy
+- `small` (~500MB) — much better for accents, technical terms, multi-speaker
+- `medium` (~1.5GB) — near-human quality, slower
+- `large-v3` (~3GB) — best quality, only for critical content
+
+For most research scans, `tiny` is enough. Bump to `small` if the speaker has
+an accent, uses jargon, or the audio is noisy.
+
+**Tested result**: 2:24 video transcribed by `tiny` in 26 seconds on CPU.
+First run downloads the model (~1s on fast network). Output is a clean `.txt`
+file with `[start --> end]` timestamps per line.
+
+Read the transcript:
+
+```
+Read("/tmp/xresearch_transcript/xresearch_audio.txt")
+```
+
+What audio reveals that frames don't:
+- **The "why"** — the speaker's motivation and intent
+- **Architecture explanations** — how things work behind the UI
+- **Plans / asks** — "I might make this a product next week, DM me"
+- **Hesitations and corrections** — signal of authenticity vs scripted demo
+- **Names and references** — products, people, tweets, citations the speaker mentions
+
+**Step 7 — Clean up between videos.**
+
+```bash
+rm -rf /tmp/xresearch_frames /tmp/xresearch_video.mp4 \
+       /tmp/xresearch_av.mp4 /tmp/xresearch_audio.mp3 \
+       /tmp/xresearch_transcript
 ```
 
 ---

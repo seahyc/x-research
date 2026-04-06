@@ -46,7 +46,8 @@ or "deep-dive this thread", the skill auto-invokes.
 
 - Claude Code (or any agent harness with a similar Skill mechanism)
 - One of: `claude-in-chrome` MCP server **(recommended — has built-in `read_network_requests`)**, or [chrome-cdp](https://github.com/seahyc/chrome-cdp), or vanilla Puppeteer
-- `ffmpeg` and `curl` on PATH (for the video download + frame extraction pipeline)
+- `ffmpeg` and `curl` on PATH (video download + frame extraction)
+- `whisper` (OpenAI's local Whisper) for audio transcription — install via `pip install openai-whisper` or `brew install whisper-cpp`
 - An active Chrome / Chromium / Brave / Edge / Arc browser session
 
 ## Tested
@@ -54,10 +55,11 @@ or "deep-dive this thread", the skill auto-invokes.
 The full pipeline has been validated end-to-end:
 - Anti-autoplay JS: ✅ paused 12 videos on a search page
 - Article scrape with structured JS: ✅ avoided the `[BLOCKED]` error
-- `read_network_requests` for video URL capture: ✅ captured 34 video.twimg.com URLs
-- ffmpeg M3U8 download: ✅ assembled 23s 1080p video in <1s
+- `read_network_requests` for video URL capture: ✅ captured 34+ video.twimg.com URLs without clicking play (X auto-prefetches)
+- ffmpeg M3U8 download: ✅ assembled a 23s 1080p video in <1s, a 2:24 video in <4s
 - Frame extraction at 1 fps: ✅ 23 frames produced
-- `Read` tool on extracted frames: ✅ Claude reads each frame as an image and extracts gameplay details (NPC names, dialogue, HUD state, mechanics)
+- `Read` tool on extracted frames: ✅ Claude reads each frame as an image and extracts NPC names, dialogue, HUD state, mechanics
+- Local Whisper audio transcription: ✅ 2:24 talking-head video transcribed in 26s with `tiny` model on CPU; output included product name, architecture details, plans, even hesitations
 
 ## Techniques codified
 
@@ -70,6 +72,7 @@ The full pipeline has been validated end-to-end:
 | Quoted tweet follow-through | Quoted tweets = what the author found remarkable = high signal |
 | Engagement ratio scoring | Likes ÷ views > 1% filters noise from genuine signal |
 | Author profile sweep | Finds related posts not visible in the hashtag feed |
+| Local Whisper audio transcription | Captures the *why* behind videos — speaker intent, architecture details, asks, and references that no frame can show |
 | Structured markdown output | Raw sources + synthesised insights, appendable across sessions |
 
 ## Works for any research domain
