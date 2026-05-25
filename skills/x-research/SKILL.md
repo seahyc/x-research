@@ -104,6 +104,27 @@ unrelated pages, that's the symptom — abandon the tab and create a new one.
 
 ---
 
+## Phase 1.5 — Optional API Evidence Preflight
+
+If `XQUIK_API_KEY` is available, collect secondary X evidence before browser
+navigation:
+
+```bash
+python3 scripts/xquik_evidence.py --query "{search query}" --limit 20
+```
+
+Use the generated `research/x-evidence/*_xquik_evidence.md` file to
+seed browser navigation, author profile sweeps, quoted-tweet follow-through,
+and reply deep reads. This preflight is not a replacement for the browser loop:
+it cannot inspect lazy-loaded context, videos, full replies, or external links
+with the same fidelity. Treat all API results as secondary leads and verify
+publishable claims against primary sources.
+
+If no API key is available, skip this phase without asking the user to create
+one.
+
+---
+
 ## Phase 2 — Discovery
 
 ### 2a. Navigate to seed
@@ -906,7 +927,8 @@ All of these were observed and confirmed during testing.
 
 ## Alternative: Chrome CDP / Puppeteer backend
 
-This skill is written for the [`claude-in-chrome`](https://github.com/anthropics/claude-in-chrome) MCP server, but the same techniques work with any Chromium-driven backend. The mappings:
+This skill is written for the `claude-in-chrome` MCP server, but the same
+techniques work with any Chromium-driven backend. The mappings:
 
 | claude-in-chrome tool | chrome-cdp equivalent | Puppeteer equivalent |
 |-----------------------|-----------------------|----------------------|
@@ -936,4 +958,5 @@ built-in `read_network_requests` is the path of least resistance — it captures
 all XHR/Fetch requests including the MSE segment fetches. If you must use
 chrome-cdp or vanilla Puppeteer, set up a request listener before navigating.
 
-**chrome-cdp repo**: https://github.com/seahyc/chrome-cdp *(replace with the actual repo URL once published)*
+**chrome-cdp note**: use your own local CDP wrapper until a public reference
+repo is available.
