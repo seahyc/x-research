@@ -20,6 +20,18 @@ Runs a structured multi-pass research loop:
 6. **Checkpoint** — pauses and asks you where to go next based on real findings
 7. **Documentation** — writes structured markdown: raw sources + patterns + insights
 
+Optional: if you have a Hermes Tweet API key or Xquik API key, collect a
+secondary X evidence pack before the browser pass:
+
+```bash
+export HERMES_TWEET_API_KEY="..."
+python3 scripts/xquik_evidence.py --query "AI agent evals" --limit 20
+```
+
+The script also accepts `XQUIK_API_KEY` for existing Xquik users. Treat the
+output as leads for authors, wording, replies, quoted posts, and links; keep
+the browser workflow for thread/video deep reads.
+
 ## Installation
 
 ### Via [skills.sh](https://skills.sh) (Recommended — works on Claude Code, Cursor, Codex, Cline, Copilot, +41 more agents)
@@ -83,10 +95,12 @@ or "deep-dive this thread", the skill auto-invokes.
 ## Requirements
 
 - Claude Code (or any agent harness with a similar Skill mechanism)
-- One of: `claude-in-chrome` MCP server **(recommended — has built-in `read_network_requests`)**, or [chrome-cdp](https://github.com/seahyc/chrome-cdp), or vanilla Puppeteer
+- One of: `claude-in-chrome` MCP server **(recommended — has built-in `read_network_requests`)**, a local `chrome-cdp` wrapper, or vanilla Puppeteer
 - `ffmpeg` and `curl` on PATH (video download + frame extraction)
 - `whisper` (OpenAI's local Whisper) for audio transcription — install via `pip install openai-whisper` or `brew install whisper-cpp`
 - An active Chrome / Chromium / Brave / Edge / Arc browser session
+- Optional: `HERMES_TWEET_API_KEY` or `XQUIK_API_KEY` for API-backed secondary
+  evidence collection
 
 ## Tested
 

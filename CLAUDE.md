@@ -19,3 +19,7 @@ The skill uses AskUserQuestion to gather scope, then runs a multi-pass loop:
 discovery → signal filtering → deep read → video download + frame + audio analysis → documentation → user checkpoint.
 
 Primary use case: founders gathering user needs and community sentiment on a topic.
+
+Optional: with `HERMES_TWEET_API_KEY` or `XQUIK_API_KEY`, run
+`python3 scripts/xquik_evidence.py --query "..." --limit 20` first to
+collect secondary X leads before browser deep reading.
