@@ -18,18 +18,23 @@ class XquikEvidenceTest(unittest.TestCase):
         self.assertEqual(evidence.build_headers("xq_test"), {"Accept": "application/json", "x-api-key": "xq_test"})
         self.assertEqual(evidence.build_headers("Bearer token"), {"Accept": "application/json", "Authorization": "Bearer token"})
 
-    def test_get_config_prefers_exported_xquik_key(self):
+    def test_get_config_prefers_exported_hermes_tweet_key(self):
         config = evidence.get_config(
-            {"XQUIK_API_KEY": "xquik", "XQUIK_BASE_URL": "https://api.example.com"},
+            {"HERMES_TWEET_API_KEY": "hermes", "XQUIK_API_KEY": "xquik", "XQUIK_BASE_URL": "https://api.example.com"},
             {"XQUIK_API_KEY": "dotenv"},
         )
 
-        self.assertEqual(config, evidence.Config(api_key="xquik", base_url="https://api.example.com"))
+        self.assertEqual(config, evidence.Config(api_key="hermes", base_url="https://api.example.com"))
 
-    def test_get_config_reads_dotenv_fallback(self):
-        config = evidence.get_config({}, {"XQUIK_API_KEY": "dotenv"})
+    def test_get_config_reads_hermes_tweet_dotenv_fallback(self):
+        config = evidence.get_config({}, {"HERMES_TWEET_API_KEY": "dotenv"})
 
         self.assertEqual(config, evidence.Config(api_key="dotenv", base_url="https://xquik.com"))
+
+    def test_get_config_keeps_xquik_api_key_alias(self):
+        config = evidence.get_config({"XQUIK_API_KEY": "xquik"}, {})
+
+        self.assertEqual(config, evidence.Config(api_key="xquik", base_url="https://xquik.com"))
 
     def test_extract_tweet_list_handles_nested_payloads(self):
         payload = {"data": {"tweets": [{"id": "1", "text": "one"}]}}
@@ -77,7 +82,7 @@ class XquikEvidenceTest(unittest.TestCase):
             datetime(2026, 5, 25, tzinfo=timezone.utc),
         )
 
-        self.assertIn("Xquik X Evidence", markdown)
+        self.assertIn("Hermes Tweet-Compatible X Evidence", markdown)
         self.assertIn("Source type: Secondary X evidence", markdown)
         self.assertIn("official docs", markdown)
         self.assertIn("https://x.com/example/status/123", markdown)

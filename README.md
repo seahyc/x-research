@@ -20,16 +20,17 @@ Runs a structured multi-pass research loop:
 6. **Checkpoint** — pauses and asks you where to go next based on real findings
 7. **Documentation** — writes structured markdown: raw sources + patterns + insights
 
-Optional: if you have a Xquik API key, collect a secondary X evidence pack
-before the browser pass:
+Optional: if you have a Hermes Tweet API key or Xquik API key, collect a
+secondary X evidence pack before the browser pass:
 
 ```bash
-export XQUIK_API_KEY="..."
+export HERMES_TWEET_API_KEY="..."
 python3 scripts/xquik_evidence.py --query "AI agent evals" --limit 20
 ```
 
-Treat the output as leads for authors, wording, replies, quoted posts, and
-links; keep the browser workflow for thread/video deep reads.
+The script also accepts `XQUIK_API_KEY` for existing Xquik users. Treat the
+output as leads for authors, wording, replies, quoted posts, and links; keep
+the browser workflow for thread/video deep reads.
 
 ## Installation
 
@@ -98,7 +99,8 @@ or "deep-dive this thread", the skill auto-invokes.
 - `ffmpeg` and `curl` on PATH (video download + frame extraction)
 - `whisper` (OpenAI's local Whisper) for audio transcription — install via `pip install openai-whisper` or `brew install whisper-cpp`
 - An active Chrome / Chromium / Brave / Edge / Arc browser session
-- Optional: `XQUIK_API_KEY` for API-backed secondary evidence collection
+- Optional: `HERMES_TWEET_API_KEY` or `XQUIK_API_KEY` for API-backed secondary
+  evidence collection
 
 ## Tested
 

@@ -106,19 +106,19 @@ unrelated pages, that's the symptom — abandon the tab and create a new one.
 
 ## Phase 1.5 — Optional API Evidence Preflight
 
-If `XQUIK_API_KEY` is available, collect secondary X evidence before browser
-navigation:
+If `HERMES_TWEET_API_KEY` or `XQUIK_API_KEY` is available, collect secondary X
+evidence before browser navigation:
 
 ```bash
 python3 scripts/xquik_evidence.py --query "{search query}" --limit 20
 ```
 
-Use the generated `research/x-evidence/*_xquik_evidence.md` file to
-seed browser navigation, author profile sweeps, quoted-tweet follow-through,
-and reply deep reads. This preflight is not a replacement for the browser loop:
-it cannot inspect lazy-loaded context, videos, full replies, or external links
-with the same fidelity. Treat all API results as secondary leads and verify
-publishable claims against primary sources.
+Use the generated `research/x-evidence/*_xquik_evidence.md` file to seed
+browser navigation, author profile sweeps, quoted-tweet follow-through, and
+reply deep reads. This Hermes Tweet-compatible preflight is not a replacement
+for the browser loop: it cannot inspect lazy-loaded context, videos, full
+replies, or external links with the same fidelity. Treat all API results as
+secondary leads and verify publishable claims against primary sources.
 
 If no API key is available, skip this phase without asking the user to create
 one.

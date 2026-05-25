@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect secondary X evidence through Xquik read APIs."""
+"""Collect secondary X evidence through Hermes Tweet-compatible Xquik APIs."""
 
 from __future__ import annotations
 
@@ -75,7 +75,13 @@ def get_config(
     env_values = env if env is not None else os.environ
     dotenv_values = dotenv if dotenv is not None else load_dotenv(repo_root() / ".env")
     return Config(
-        api_key=env_values.get("XQUIK_API_KEY") or dotenv_values.get("XQUIK_API_KEY") or "",
+        api_key=(
+            env_values.get("HERMES_TWEET_API_KEY")
+            or env_values.get("XQUIK_API_KEY")
+            or dotenv_values.get("HERMES_TWEET_API_KEY")
+            or dotenv_values.get("XQUIK_API_KEY")
+            or ""
+        ),
         base_url=env_values.get("XQUIK_BASE_URL") or dotenv_values.get("XQUIK_BASE_URL") or DEFAULT_BASE_URL,
     )
 
@@ -231,7 +237,7 @@ def truncate(value: str, length: int = 220) -> str:
 
 def render_markdown(queries: list[str], tweets: list[TweetEvidence], generated_at: datetime) -> str:
     lines = [
-        "# Xquik X Evidence",
+        "# Hermes Tweet-Compatible X Evidence",
         "",
         "## Meta",
         f"- Timestamp (UTC): {generated_at.isoformat()}",
@@ -285,7 +291,7 @@ def save_output(out_dir: str, filename: str, content: str) -> Path:
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Collect secondary X evidence through Xquik APIs.")
+    parser = argparse.ArgumentParser(description="Collect secondary X evidence through Hermes Tweet-compatible APIs.")
     parser.add_argument("--query", action="append", default=[], help="X search query. Repeat for multiple searches.")
     parser.add_argument("--topic", default="", help="Topic used as a query when --query is omitted.")
     parser.add_argument("--limit", type=int, default=20, help="Results per query, capped at 50.")
@@ -326,7 +332,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not config.api_key.strip():
-        sys.stderr.write("Missing XQUIK_API_KEY.\n")
+        sys.stderr.write("Missing HERMES_TWEET_API_KEY or XQUIK_API_KEY.\n")
         return 2
 
     generated_at = datetime.now(tz=timezone.utc)

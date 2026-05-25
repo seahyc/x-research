@@ -20,6 +20,6 @@ discovery → signal filtering → deep read → video download + frame + audio 
 
 Primary use case: founders gathering user needs and community sentiment on a topic.
 
-Optional: with `XQUIK_API_KEY`, run
+Optional: with `HERMES_TWEET_API_KEY` or `XQUIK_API_KEY`, run
 `python3 scripts/xquik_evidence.py --query "..." --limit 20` first to
 collect secondary X leads before browser deep reading.
