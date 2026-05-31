@@ -71,6 +71,22 @@ ln -s ~/Code/x-research/skills/x-research ~/.claude/skills/x-research
 
 In Claude Code, ask: *"research what people are saying about [topic] on X"* — the skill should auto-invoke. Or explicitly: *"use the x-research skill"*.
 
+### Optional: GetXAPI evidence preflight
+
+If `GETXAPI_API_KEY` is set, the skill can pull a small read-only X evidence
+sample via `scripts/getxapi_evidence.py` before the main browser pass. This
+gives the deep-read phase concrete tweet wording, engagement signals, and
+author handles to ground the research without standing up a browser session.
+
+```bash
+export GETXAPI_API_KEY="..."
+python3 scripts/getxapi_evidence.py search "{topic}" --limit 10 --format markdown
+python3 scripts/getxapi_evidence.py replies {tweet_id} --limit 10
+```
+
+If no key is configured, the helper prints a skipped result and the rest of
+the workflow is unaffected.
+
 ## Usage
 
 ```
